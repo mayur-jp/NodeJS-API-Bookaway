@@ -1,4 +1,4 @@
-# NodeJS-API-Bookaway
+﻿# NodeJS-API-Bookaway
 ------------------------------------------------------------
 ## **About Application**
 ------------------------------------------------------------
@@ -30,3 +30,8 @@
 
 ### 6.Book the cheapest trip that is available and has instant confirmation - print the booking reference.
 #### =>calling the http://localhost:3000/booking and print the booking reference.here calling the booking approved api and print the remaining credits of your account after you booked the trip.
+### 7.fetch the booking until it is approved (up to 2 minutes - if it’s not auto approved in 2 minutes, you may stop).
+#### => calling the http://localhost:3000/fechtbookings and print the booking result untill it's approved in 2 minuts.
+
+### 8.print the remaining credits of your account after you booked the trip.
+#### => calling http://localhost:3000/remainingCredit api after booking is approved it's print the account remaining balance.

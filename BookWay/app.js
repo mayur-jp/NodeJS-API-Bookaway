@@ -10,34 +10,28 @@ const clientSecret= process.env.client_secret;
 const requestToken=process.env.token_type+" "+process.env.access_token
 const apiurl=process.env.apiUrl;
 
-const authentication=new Promise(function() {
-  axios({
-    // make a POST request
-    method: 'post',
-    // to the bookway authentication API, with the client ID, client secret
-    url: 'https://stage.bookaway.com/api/auth/v1/oauth/token?client_id=${'+clientID+'}&client_secret=${'+clientSecret+'}&scope=b2b&grant_type=client_credentials',
-    // Set the content type header, so that we get the response in JSOn
-    headers: {
-         accept: 'application/json'
-    }
-  }).then((response) => {
-    const accessToken = response.data.access_token
-   
-    res.send(`access_token=${accessToken}`)
-  }).catch(() => {});
-});
-
 app.get('/authentication',async (req, res) => {
-   await authentication(clientID,clientSecret);
+      axios.post('https://stage.bookaway.com/api/auth/v1/oauth/token', {
+        client_id:clientID,
+        client_secret: clientSecret,
+        scope:'b2b',
+        grant_type:'client_credentials'
+      })
+      .then(function (response) {
+        // console.log(response);
+        res.send(response.data.access_token);
+      })
+      .catch(function (error) {
+        console.log(error);
+      });
+    
   })
 
 app.get('/Hanoistation',(req,res)=>{
-    var station = [];
-    var count=0;
-    axios({
-        // make a GET request
-        method: 'GET',
-        url: apiurl+'/stations',
+  var station =[]; 
+  var city =[]; 
+  var count=0;
+    axios.get(apiurl+'/stations',{   
         headers: {
              accept: 'application/json',
              Authorization : requestToken
@@ -46,63 +40,81 @@ app.get('/Hanoistation',(req,res)=>{
       station = response.data;
       
       station.forEach(function(item) {
-        if(item.name=='Hanoi')
+        city.push(item.city);
+      });
+      
+      city.forEach(function(cityitem) {
+       
+        if(cityitem.city=='Hanoi')
         {
+          console.log(cityitem.cityId);
             count=count+1; 
         }
-        });
-        console.log('Hanoi station of count :'+count);
-        res.send(`Hanoi station of count=${count}`);
-
-      })
+      });
+    
+        console.log(' No of Hanoi station count  is :'+count);
+        res.send(` No of Hanoi station count  is =${count}`);
+     
+      }).catch(function (error) {
+        console.log(error);
+  });
     
 });
-app.get('/station',(req,res)=>{
-    var station = [];
-    var count=0;
-    axios({
-        method: 'GET',
-        url: apiurl+'/stations',
+app.get('/SapaStation',(req,res)=>{
+  var station =[];  
+  var city =[];  
+  var count=0;
+    axios.get(apiurl+'/stations',{
         headers: {
              accept: 'application/json',
              Authorization : requestToken
         }
       }).then((response) => {
-      station = response.data;
-      
-      station.forEach(function(item) {
-        if(item.name=='Sapa')
-        {
-            count=count+1;
-        }
-        
+        station = response.data;
+       
+        station.forEach(function(item) {
+          city.push(item.city);
         });
-        console.log('Sapa station of count :'+count);
-       res.send(`Sapa station of count=${count}`);
-      })
-    
+        
+        city.forEach(function(cityitem) {
+         
+          if(cityitem.city=='Sapa')
+          {            
+            console.log(cityitem.cityId);
+            count=count+1; 
+          }
+        });
+        console.log('No of Sapa station count  is :'+count);
+        res.send(`No of Sapa station count  is=${count}`);
+      }).catch(function (error) {
+        console.log(error);
+  });
 });
 
 app.get('/trip',(req,res)=>{
   
-  var departureStation= req.query.departures; 
+  var departureStation= req.query.departurestation; 
   var arrivalStation= req.query.arrival;
   var departure= req.query.departure; 
   var passengers= req.query.passenger;  
-  console.log(req.query.departureStation);
-  axios({
-        // make a GET request
-        method: 'GET',
-        
-        url: apiurl+'/trips?departureStation=${'+departureStation+'}&arrivalStation=${'+arrivalStation+'}&departure=${'+departure+'}&passengers=${'+passengers+'}',
-      
-        headers: {
+  
+
+    axios.get(apiurl+'/trips',{
+      params: {
+      departureStation:departureStation,
+      arrivalStation:arrivalStation,
+      departure:departure,
+      passengers:passengers},
+
+      headers: {
              accept: 'application/json',
              Authorization : requestToken
         }
       }).then((response) => {
-      res.send(response.data);
-      })
+        res.send(response.data);
+      }).catch(function (error) {
+        console.log(error);
+    });
     
 });
 
@@ -144,29 +156,83 @@ app.get('/bookings',(req,res)=>{
              
             }).then((response) => {
             console.log('Booking Reference is '+response.data.reference);
-            res.send(response.data.reference);
-            
-            if(response.data.status!='approve')
-            {
-
-              bookingPay(req.query.tripId);
-              bookingApproved()
-              
-              trip = accountcreadit();
-              console.log(trip);
-            }
+            res.send('Booking Reference is '+ response.data.reference);
           });
           }
     }
     })
   
 });
-function bookingPay(tripid)
+
+app.get('/fechtbookings',(req,res)=>{
+  
+  var tripId=req.query.tripId
+  var firstname=req.query.firstname;
+  var lastName=req.query.lastName;
+  var passengers=req.query.passengers;
+  var contact=req.query.contactNo;
+ 
+  axios({
+     method:'GET',
+     url:apiurl+'/trips/${'+tripId+'}',
+     headers: {
+      accept: 'application/json',
+      Authorization : requestToken
+    }
+ }).then((resp) => {
+  if(resp.data.length!=0)
+  {
+        if(resp.data.isAvailable== true && resp.data.isInstantConfirmation==true)
+        {
+          axios({
+            // make a POST request
+            method: 'POST',
+            url: apiurl+'/bookings?passengers=${'+passengers+'}&firstName=${'+firstname+'}&lastName=${'+lastName+'}&contact={$'+contact+'}',
+    
+            headers: {
+                accept: 'application/json',
+                Authorization : requestToken
+            }
+           
+          }).then((response) => {
+            if(response.data.status!='approve')
+              {
+                bookingPay(req.query.tripId);
+                setTimeout(bookingApproved(),120000);
+              }
+          });
+        }
+  }
+  })
+
+});
+
+
+app.get('/remainingCredit',(req,res)=>{
+  accountcreadit(req,res);
+});
+
+function accountcreadit(req,res)
+{
+  axios.post(apiurl+'/credits',{
+    headers: {
+         accept: 'application/json',
+         Authorization : requestToken
+    }
+  }).then((response) => {
+    console.log('Dear Customer your account clear balance is '+response.data.balance);
+    res.send('Dear Customer your account clear balance is '+response.data.balance);
+  }).catch(function (error) {
+    console.log(error);
+  });
+}
+
+function bookingPay(tripId)
 {
   axios({
     // make a POST request
     method: 'POST',
-    url: apiurl+'/bookings/'+req.query.tripId+'/pay',
+    url: 'https://virtserver.swaggerhub.com/Bookaway/B2B/1.0.0/bookings/'+tripId+'/pay',
     headers: {
         accept: 'application/json',
         Authorization : requestToken
@@ -174,7 +240,7 @@ function bookingPay(tripid)
    
   }).then((bookingRes) => {
   console.log('Booking is '+bookingRes.data.status);
-  console.log(bookingRes.data);
+  
   });
 }
 
@@ -183,7 +249,7 @@ function bookingApproved()
   axios({
     // make a POST request
     method: 'POST',
-    url: apiurl+'/approved',
+    url: 'https://virtserver.swaggerhub.com/Bookaway/B2B/1.0.0/approved',
     headers: {
         accept: 'application/json',
         Authorization : requestToken
@@ -191,26 +257,11 @@ function bookingApproved()
   }).then((bookingRes) => {
   console.log('Booking is '+bookingRes.data.status);
   res.send(bookingRes.data.status);
-  console.log(bookingRes.data);
+ 
   });
 }
 
-function accountcreadit(req,res)
-{
-  return axios({
-    // make a POST request
-    method: 'POST',
-    // to the bookway authentication API, with the client ID, client secret
-     url: apiurl+'/credits',
-    // Set the content type header, so that we get the response in JSOn
-    headers: {
-         accept: 'application/json'
-    }
-  }).then((response) => {
-  console.log('Dear Customer your account clear balance is '+response.data.balance);
- res.send('Dear Customer your account clear balance is '+response.data.balance);
-  });
-}
+
 
 app.listen(port, function() {
  console.log("Server is running at "+port+" port!");
